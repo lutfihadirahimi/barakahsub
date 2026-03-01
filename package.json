@@ -1,34 +1,37 @@
 {
-  "name": "react-vite-tailwind",
+  "name": "barakahsub-pro",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "npx vite",
+    "build": "npx vite build",
+    "preview": "npx vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
+    "@supabase/supabase-js": "^2.39.0",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.34.3",
-    "jspdf": "^4.2.0",
-    "jspdf-autotable": "^5.0.7",
-    "lucide-react": "^0.575.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "recharts": "^3.7.0",
-    "tailwind-merge": "^3.4.0"
+    "framer-motion": "^12.0.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.1",
+    "lucide-react": "^0.475.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.0",
+    "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "4.1.17",
+    "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.0.0",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.1.1",
-    "tailwindcss": "4.1.17",
-    "typescript": "5.9.3",
-    "vite": "7.2.4",
-    "vite-plugin-singlefile": "2.3.0"
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.1.0"
   }
 }
