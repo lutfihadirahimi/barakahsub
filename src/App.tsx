@@ -189,6 +189,8 @@ export function App() {
   const [tab, setTab] = useState<DashboardTab>("Dashboard");
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
   const [userEmail, setUserEmail] = useState("amina@barakahsub.my");
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(seedSubscriptions);
   const [selectedWaqf, setSelectedWaqf] = useState<WaqfTarget>("Air");
@@ -232,7 +234,7 @@ export function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      setNotice("Supabase belum dikonfigurasikan. Mode demo digunakan.");
+      setNotice("Supabase belum dikonfigurasikan. Mode demo akan digunakan apabila anda membuka dashboard.");
       return;
     }
 
@@ -241,6 +243,7 @@ export function App() {
       if (!isMounted) return;
       if (data.session?.user) {
         setUserEmail(data.session.user.email ?? "user@barakahsub.my");
+        setDemoMode(false);
         setPage("Dashboard");
       }
     });
@@ -248,6 +251,7 @@ export function App() {
     const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
       if (session?.user) {
         setUserEmail(session.user.email ?? "user@barakahsub.my");
+        setDemoMode(false);
         setPage("Dashboard");
       } else {
         setPage("Public");
@@ -273,14 +277,20 @@ export function App() {
   const handleAuthSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
+    setAuthError(null);
 
     if (!isSupabaseConfigured) {
       setUserEmail(authForm.email || "demo@barakahsub.my");
       setProfileSettings((prev) => ({ ...prev, waqf: authForm.target }));
       setSelectedWaqf(authForm.target);
+      setDemoMode(false);
       setPage("Dashboard");
       setLoading(false);
       return;
+    }
+
+    if (demoMode) {
+      setDemoMode(false);
     }
 
     const { data, error } =
@@ -296,7 +306,12 @@ export function App() {
           });
 
     if (error) {
-      pushNotice(error.message);
+      const message =
+        authMode === "login"
+          ? "Login gagal. Semak email dan kata laluan anda."
+          : "Pendaftaran gagal. Sila cuba semula.";
+      setAuthError(message);
+      pushNotice(message);
     } else if (data.user) {
       setUserEmail(data.user.email ?? authForm.email);
       setProfileSettings((prev) => ({ ...prev, waqf: authForm.target }));
@@ -408,22 +423,35 @@ export function App() {
 
   const publicPage = (
     <div className="min-h-screen bg-slate-950 text-white">
-      <header className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
+      <header className="px-4 sm:px-6 py-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-200">
             <Sparkles className="w-6 h-6 animate-pulse" />
           </div>
           <span className="font-black text-xl italic tracking-tighter">BarakahSub</span>
         </div>
-        <button
-          onClick={() => authRef.current?.scrollIntoView({ behavior: "smooth" })}
-          className="bg-emerald-400 text-slate-950 px-6 py-2 rounded-full font-black text-[10px] uppercase shadow-lg shadow-emerald-400/20"
-        >
-          Audit Langganan Saya
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => authRef.current?.scrollIntoView({ behavior: "smooth" })}
+            className="w-full sm:w-auto bg-emerald-400 text-slate-950 px-4 py-2 rounded-full font-black text-[10px] uppercase shadow-lg shadow-emerald-400/20"
+          >
+            Audit Langganan Saya
+          </button>
+          <button
+            onClick={() => {
+              setDemoMode(true);
+              setUserEmail("demo@barakahsub.my");
+              setPage("Dashboard");
+            }}
+            className="w-full sm:w-auto border border-white/20 px-4 py-2 rounded-full uppercase tracking-widest text-[10px] font-black text-white/70"
+          >
+            Lihat Demo
+          </button>
+        </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-16 space-y-20">
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-16 space-y-16 sm:space-y-20">
         <section className="text-center space-y-8">
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
@@ -440,17 +468,24 @@ export function App() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => authRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="bg-emerald-400 text-slate-950 px-6 py-3 rounded-full font-black uppercase tracking-widest text-[11px]"
+              className="w-full sm:w-auto bg-emerald-400 text-slate-950 px-6 py-3 rounded-full font-black uppercase tracking-widest text-[11px]"
             >
               Audit Langganan Saya Sekarang (Percuma)
             </button>
-            <button className="border border-white/20 px-6 py-3 rounded-full uppercase tracking-widest text-[11px] font-black text-white/70">
+            <button
+              onClick={() => {
+                setDemoMode(true);
+                setUserEmail("demo@barakahsub.my");
+                setPage("Dashboard");
+              }}
+              className="w-full sm:w-auto border border-white/20 px-6 py-3 rounded-full uppercase tracking-widest text-[11px] font-black text-white/70"
+            >
               Lihat Demo Dashboard
             </button>
           </div>
         </section>
 
-        <section className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 items-center">
+        <section className="grid lg:grid-cols-[1.2fr_0.8fr] gap-8 lg:gap-12 items-center">
           <div className="space-y-6">
             <h2 className="text-3xl font-black italic">The Barakah Engine</h2>
             <p className="text-slate-300">
@@ -495,7 +530,7 @@ export function App() {
           </div>
         </section>
 
-        <section ref={authRef} className="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 items-center">
+        <section ref={authRef} className="grid lg:grid-cols-[0.9fr_1.1fr] gap-8 lg:gap-10 items-center">
           <div className="space-y-4">
             <h2 className="text-3xl font-black italic">Security Gate</h2>
             <p className="text-slate-300">
@@ -553,6 +588,11 @@ export function App() {
                   </div>
                 </div>
               )}
+              {authError && (
+                <div className="bg-rose-500/10 border border-rose-500/30 text-rose-200 rounded-2xl px-4 py-3 text-xs font-semibold">
+                  {authError}
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={loading}
@@ -575,15 +615,22 @@ export function App() {
   );
 
   const dashboardPage = (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex">
-      <aside className="w-72 bg-white border-r border-slate-200 p-8 flex flex-col gap-8">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center">
-            <Zap className="w-4 h-4" />
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col lg:flex-row">
+      <aside className="w-full lg:w-72 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 p-4 sm:p-6 lg:p-8 flex flex-col gap-4 lg:gap-6 sticky top-0 z-20 shadow-sm lg:shadow-none">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center">
+                <Zap className="w-4 h-4" />
+              </div>
+              <span className="font-black text-lg">BarakahSub</span>
+            </div>
+            {demoMode && (
+              <span className="text-[9px] uppercase font-black tracking-widest bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                Demo Mode
+              </span>
+            )}
           </div>
-          <span className="font-black text-lg">BarakahSub</span>
-        </div>
-        <nav className="space-y-3">
+          <nav className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2 bg-slate-50 p-2 rounded-2xl lg:bg-transparent lg:p-0">
           {["Dashboard", "Audit", "Micro-Waqf"].map((item) => (
             <button
               key={item}
@@ -596,7 +643,7 @@ export function App() {
             </button>
           ))}
         </nav>
-        <div className="space-y-4 mt-auto">
+        <div className="space-y-4 mt-4 lg:mt-auto">
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">User Session</p>
             <p className="text-sm font-semibold truncate">{userEmail}</p>
@@ -615,13 +662,25 @@ export function App() {
         </div>
       </aside>
 
-      <main className="flex-1 p-10 overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-y-auto space-y-6 pb-16">
         <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div>
+          {demoMode && (
+            <div className="lg:hidden bg-amber-100 text-amber-800 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest">
+              Anda sedang melihat Demo Mode. Data ini adalah simulasi.
+            </div>
+          )}
+          <div className="space-y-2">
             <p className="text-[10px] uppercase text-slate-400 font-black tracking-[0.2em]">Operational Dashboard</p>
-            <h1 className="text-3xl font-black italic tracking-tight">Command Center</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-black italic tracking-tight">Command Center</h1>
+              {demoMode && (
+                <span className="hidden lg:inline-flex text-[9px] uppercase font-black tracking-widest bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                  Demo Mode
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             <button
               onClick={() => setIsProfileOpen(true)}
               className="px-4 py-3 rounded-2xl border border-slate-200 text-slate-400 hover:text-slate-700"
@@ -653,9 +712,15 @@ export function App() {
           </motion.div>
         )}
 
+        {demoMode && (
+          <div className="hidden lg:block bg-amber-100 text-amber-800 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest">
+            Anda sedang melihat Demo Mode. Data ini adalah simulasi.
+          </div>
+        )}
+
         {tab === "Dashboard" && (
           <>
-            <section className="grid md:grid-cols-3 gap-6 mt-10">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
               <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-200">
                 <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">Health Score</p>
                 <div className="mt-4 flex items-end gap-2">
@@ -682,7 +747,7 @@ export function App() {
               </div>
             </section>
 
-            <section className="mt-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-8">
+            <section className="mt-10 grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-8">
               <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -816,7 +881,7 @@ export function App() {
         )}
 
         {tab === "Audit" && (
-          <section className="mt-10 space-y-6">
+          <section className="mt-8 space-y-6">
             <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-200">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -839,7 +904,7 @@ export function App() {
                   ))}
                 </div>
               </div>
-              <div className="mt-6 grid md:grid-cols-3 gap-4">
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {complianceFilters
                   .filter((filter) => filter !== "Semua")
                   .map((filter) => (
@@ -889,8 +954,8 @@ export function App() {
         )}
 
         {tab === "Micro-Waqf" && (
-          <section className="mt-10 space-y-6">
-            <div className="grid md:grid-cols-3 gap-6">
+          <section className="mt-8 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {waqfProjects.map((project) => (
                 <button
                   key={project.id}
@@ -908,7 +973,7 @@ export function App() {
               ))}
             </div>
 
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200 grid lg:grid-cols-[1.1fr_0.9fr] gap-8">
+            <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-200 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8">
               <div>
                 <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">Waqf Dashboard</p>
                 <h2 className="text-2xl font-black mt-2">{currentProject.name}</h2>
@@ -943,7 +1008,7 @@ export function App() {
 
       <AnimatePresence>
         {isAddModalOpen && (
-          <Modal onClose={() => setIsAddModalOpen(false)} title="Audit Baru">
+          <Modal onClose={() => setIsAddModalOpen(false)} title="Audit Baru" size="lg">
             <form onSubmit={handleAddSubscription} className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] uppercase text-slate-400 font-bold">Nama Servis</label>
@@ -976,7 +1041,7 @@ export function App() {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className="text-[10px] uppercase text-slate-400 font-bold">
                   Harga (RM)
                   <input
@@ -1089,7 +1154,7 @@ export function App() {
                 <p className="text-xs text-emerald-600 mt-1">{currentProject.description}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label className="text-[10px] uppercase text-slate-400 font-bold">
                   Jumlah Wakaf (RM)
                   <input
@@ -1165,18 +1230,20 @@ type ModalProps = {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
+  size?: "md" | "lg";
 };
 
-function Modal({ title, children, onClose }: ModalProps) {
+function Modal({ title, children, onClose, size = "md" }: ModalProps) {
+  const sizeClass = size === "lg" ? "max-w-2xl" : "max-w-lg";
   return (
-    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white w-full max-w-lg rounded-[2rem] p-8 relative shadow-2xl"
+        className={`bg-white w-full ${sizeClass} rounded-[2rem] p-6 sm:p-8 relative shadow-2xl`}
       >
-        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-800">
+        <button onClick={onClose} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-400 hover:text-slate-800">
           <X className="w-5 h-5" />
         </button>
         <h3 className="text-xl font-black mb-6">{title}</h3>
