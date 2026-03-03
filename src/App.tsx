@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { jsPDF } from "jspdf";
 import {
@@ -58,6 +58,7 @@ type Receipt = {
 };
 
 type AuthFormState = {
+  fullName: string;
   email: string;
   password: string;
   target: WaqfTarget;
@@ -107,53 +108,91 @@ const waqfProjects: Project[] = [
 ];
 
 const auditDatabase: Record<string, { status: ComplianceStatus; suggestion: string }> = {
-  netflix: { status: "Yellow", suggestion: "Gantikan dengan YouTube Premium (Ilmu)" },
-  disney: { status: "Red", suggestion: "Gantikan dengan Nurflix atau Durioo+" },
-  chatgpt: { status: "Green", suggestion: "Teruskan jika penggunaan produktif" },
-  spotify: { status: "Yellow", suggestion: "Gantikan dengan YouTube Music" },
-  canva: { status: "Green", suggestion: "Teruskan jika perlu" },
-  adobe: { status: "Red", suggestion: "Gantikan dengan Canva atau Affinity" },
-  icloud: { status: "Yellow", suggestion: "Audit storan dan downgrade" },
-};
-
-const seedSubscriptions: Subscription[] = [
-  {
-    id: "seed-1",
-    name: "Netflix",
-    category: "Streaming",
-    cost: 55,
-    billing: "Bulanan",
-    usage: "Zombie",
-    status: "Red",
-    waqfRoundUp: true,
-    lastUsed: "2 minggu lepas",
-    renewInDays: 4,
-  },
-  {
-    id: "seed-2",
-    name: "iCloud+",
-    category: "Cloud",
-    cost: 12.9,
-    billing: "Bulanan",
-    usage: "Aktif",
+  netflix: {
     status: "Yellow",
-    waqfRoundUp: true,
-    lastUsed: "Hari ini",
-    renewInDays: 15,
+    suggestion: "Gantikan dengan YouTube Premium (Fokus kandungan pendidikan/dakwah) atau Nurflix.",
   },
-  {
-    id: "seed-3",
-    name: "ChatGPT",
-    category: "Produktiviti",
-    cost: 99,
-    billing: "Bulanan",
-    usage: "Aktif",
+  disney: {
+    status: "Red",
+    suggestion: "Gantikan dengan Nurflix (Global) atau Durioo+ (Khas untuk kanak-kanak Muslim).",
+  },
+  hbo: {
+    status: "Yellow",
+    suggestion: "Alternatif: Amazon Prime Video atau fokus kepada pembelian filem secara 'Pay-per-view'.",
+  },
+  apple: {
     status: "Green",
-    waqfRoundUp: true,
-    lastUsed: "Hari ini",
-    renewInDays: 27,
+    suggestion: "Apple TV+ mempunyai polisi etika yang lebih ketat, namun audit kandungan tetap diperlukan.",
   },
-];
+  spotify: {
+    status: "Red",
+    suggestion: "Gantikan dengan YouTube Music atau Deezer (Polisi pelaburan lebih neutral).",
+  },
+  tidal: {
+    status: "Green",
+    suggestion: "Pilihan terbaik untuk kualiti audio tinggi dengan pembahagian royalti artis yang lebih adil.",
+  },
+  adobe: {
+    status: "Red",
+    suggestion: "Gantikan dengan Affinity Suite (Photo/Designer/Publisher) - Bayaran sekali seumur hidup.",
+  },
+  canva: {
+    status: "Green",
+    suggestion: "Teruskan. Alternatif lokal yang baik untuk tugasan grafik pantas.",
+  },
+  figma: {
+    status: "Green",
+    suggestion: "Standard industri yang masih dikira neutral. Alternatif: Penpot (Open Source).",
+  },
+  microsoft: {
+    status: "Yellow",
+    suggestion: "Gantikan dengan OnlyOffice atau WPS Office (Lebih ringan dan kos lebih rendah).",
+  },
+  google: {
+    status: "Yellow",
+    suggestion: "Alternatif: Proton Mail & Drive (Sangat beretika dan memfokuskan privasi pengguna).",
+  },
+  notion: {
+    status: "Green",
+    suggestion: "Teruskan. Alternatif: AppFlowy atau Obsidian (Data disimpan secara lokal).",
+  },
+  chatgpt: {
+    status: "Yellow",
+    suggestion: "Gantikan dengan Claude (Anthropic) - Lebih mematuhi etika 'AI Safety' dan ketelusan.",
+  },
+  midjourney: {
+    status: "Yellow",
+    suggestion: "Alternatif: Leonardo.ai atau Adobe Firefly (Hanya jika anda sudah melanggan Adobe).",
+  },
+  perplexity: {
+    status: "Green",
+    suggestion: "Alat carian AI yang sangat efisien. Teruskan untuk produktiviti.",
+  },
+  icloud: {
+    status: "Green",
+    suggestion: "Pilihan paling stabil untuk ekosistem Apple. Alternatif: pCloud (Swiss-based, sangat selamat).",
+  },
+  dropbox: {
+    status: "Yellow",
+    suggestion: "Gantikan dengan Mega.nz atau Proton Drive untuk sekuriti data yang lebih tinggi.",
+  },
+  playstation: {
+    status: "Yellow",
+    suggestion: "Hadkan langganan. Gunakan PC Gaming (Steam/Epic) yang mempunyai polisi harga rantau Malaysia lebih adil.",
+  },
+  xbox: {
+    status: "Yellow",
+    suggestion: "Alternatif: PC Game Pass adalah lebih berbaloi bagi pengguna di Malaysia.",
+  },
+  "muslim pro": {
+    status: "Yellow",
+    suggestion: "Gantikan dengan 'The Muslim App' atau 'Umma' yang lebih telus dalam pengurusan data peribadi.",
+  },
+  duolingo: {
+    status: "Green",
+    suggestion: "Teruskan. Pilihan pembelajaran bahasa yang sangat efektif.",
+  },
+};
 
 const barakahSteps = [
   {
@@ -192,7 +231,9 @@ export function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
   const [userEmail, setUserEmail] = useState("amina@barakahsub.my");
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>(seedSubscriptions);
+  const [userFullName, setUserFullName] = useState("Amina Rahman");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [selectedWaqf, setSelectedWaqf] = useState<WaqfTarget>("Air");
   const [auditFilter, setAuditFilter] = useState<"Semua" | ComplianceStatus>("Semua");
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -200,8 +241,10 @@ export function App() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const [authForm, setAuthForm] = useState<AuthFormState>({
+    fullName: "",
     email: "",
     password: "",
     target: "Air",
@@ -213,15 +256,52 @@ export function App() {
     renewal: "",
   });
   const [profileSettings, setProfileSettings] = useState({
+    fullName: "",
     waqf: "Air" as WaqfTarget,
     monthlyEmail: true,
     mfa: false,
+    newPassword: "",
+    confirmPassword: "",
   });
   const [paymentForm, setPaymentForm] = useState({
     amount: "10",
     tip: "2",
     method: "DuitNow",
   });
+
+  const fetchRealData = async (id: string) => {
+    if (!isSupabaseConfigured) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      pushNotice("Gagal sync data dari Cloud. Sila cuba semula.");
+      setLoading(false);
+      return;
+    }
+
+    if (data) {
+      const formatted: Subscription[] = data.map((item) => ({
+        id: item.id,
+        name: item.service_name ?? "Servis",
+        category: item.category || "Streaming",
+        cost: Number(item.price) || 0,
+        billing: (item.billing as Subscription["billing"]) || "Bulanan",
+        usage: item.usage || "Aktif",
+        status:
+          item.shariah_status === "Patuh" ? "Green" : item.shariah_status === "Boikot" ? "Red" : "Yellow",
+        waqfRoundUp: item.waqf_round_up ?? true,
+        lastUsed: item.last_used || "Hari ini",
+        renewInDays: getDaysRemaining(item.renewal_date) ?? 30,
+      }));
+      setSubscriptions(formatted);
+    }
+    setLoading(false);
+  };
 
   const totalMonthly = useMemo(() => subscriptions.reduce((sum, item) => sum + item.cost, 0), [subscriptions]);
   const waqfPotential = useMemo(() => totalMonthly * 0.05, [totalMonthly]);
@@ -243,17 +323,39 @@ export function App() {
       if (!isMounted) return;
       if (data.session?.user) {
         setUserEmail(data.session.user.email ?? "user@barakahsub.my");
+        setUserFullName((data.session.user.user_metadata?.full_name as string) || "Pengguna Baharu");
+        setProfileSettings((prev) => ({
+          ...prev,
+          fullName: (data.session.user.user_metadata?.full_name as string) || prev.fullName,
+          waqf: (data.session.user.user_metadata?.waqf_target as WaqfTarget) || prev.waqf,
+          newPassword: "",
+          confirmPassword: "",
+        }));
+        setUserId(data.session.user.id);
         setDemoMode(false);
         setPage("Dashboard");
+        fetchRealData(data.session.user.id);
       }
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
       if (session?.user) {
         setUserEmail(session.user.email ?? "user@barakahsub.my");
+        setUserFullName((session.user.user_metadata?.full_name as string) || "Pengguna Baharu");
+        setProfileSettings((prev) => ({
+          ...prev,
+          fullName: (session.user.user_metadata?.full_name as string) || prev.fullName,
+          waqf: (session.user.user_metadata?.waqf_target as WaqfTarget) || prev.waqf,
+          newPassword: "",
+          confirmPassword: "",
+        }));
+        setUserId(session.user.id);
         setDemoMode(false);
         setPage("Dashboard");
+        fetchRealData(session.user.id);
       } else {
+        setUserId(null);
+        setSubscriptions([]);
         setPage("Public");
       }
     });
@@ -279,12 +381,32 @@ export function App() {
     setLoading(true);
     setAuthError(null);
 
+    if (authMode === "signup" && !authForm.fullName.trim()) {
+      setAuthError("Sila masukkan nama penuh anda.");
+      setLoading(false);
+      return;
+    }
+
     if (!isSupabaseConfigured) {
       setUserEmail(authForm.email || "demo@barakahsub.my");
-      setProfileSettings((prev) => ({ ...prev, waqf: authForm.target }));
+      setUserFullName(authForm.fullName || "Pengguna Baharu");
+      setProfileSettings((prev) => ({
+        ...prev,
+        waqf: authForm.target,
+        fullName: authForm.fullName,
+        newPassword: "",
+        confirmPassword: "",
+      }));
       setSelectedWaqf(authForm.target);
+      setSubscriptions([]);
       setDemoMode(false);
       setPage("Dashboard");
+      setLoading(false);
+      return;
+    }
+
+    if (isSupabaseConfigured && !authForm.email) {
+      setAuthError("Sila masukkan email yang sah.");
       setLoading(false);
       return;
     }
@@ -298,7 +420,7 @@ export function App() {
         ? await supabase.auth.signUp({
             email: authForm.email,
             password: authForm.password,
-            options: { data: { waqf_target: authForm.target } },
+            options: { data: { waqf_target: authForm.target, full_name: authForm.fullName } },
           })
         : await supabase.auth.signInWithPassword({
             email: authForm.email,
@@ -312,11 +434,29 @@ export function App() {
           : "Pendaftaran gagal. Sila cuba semula.";
       setAuthError(message);
       pushNotice(message);
+    } else if (data.user && authMode === "signup") {
+      pushNotice("Pendaftaran berjaya. Sila login semula menggunakan email dan kata laluan anda.");
+      setAuthMode("login");
+      setAuthForm((prev) => ({ ...prev, password: "" }));
+      if (data.session) {
+        await supabase.auth.signOut();
+      }
     } else if (data.user) {
-      setUserEmail(data.user.email ?? authForm.email);
-      setProfileSettings((prev) => ({ ...prev, waqf: authForm.target }));
+      const signedUser = data.user;
+      setUserEmail(signedUser.email ?? authForm.email);
+      setUserFullName((signedUser.user_metadata?.full_name as string) || authForm.fullName || "Pengguna Baharu");
+      setUserId(signedUser.id);
+      setProfileSettings((prev) => ({
+        ...prev,
+        fullName: (signedUser.user_metadata?.full_name as string) || authForm.fullName,
+        waqf: authForm.target,
+        newPassword: "",
+        confirmPassword: "",
+      }));
       setSelectedWaqf(authForm.target);
+      setSubscriptions([]);
       setPage("Dashboard");
+      fetchRealData(signedUser.id);
     }
 
     setLoading(false);
@@ -332,10 +472,37 @@ export function App() {
     setAddForm((prev) => ({ ...prev, name, status }));
   };
 
-  const handleAddSubscription = (event: FormEvent) => {
+  const handleAddSubscription = async (event: FormEvent) => {
     event.preventDefault();
     const cost = Number.parseFloat(addForm.cost || "0");
     if (!addForm.name || Number.isNaN(cost)) return;
+
+    if (isSupabaseConfigured && userId) {
+      setLoading(true);
+      const { error } = await supabase.from("subscriptions").insert([
+        {
+          user_id: userId,
+          service_name: addForm.name,
+          price: cost,
+          billing: "Bulanan",
+          category: "Umum",
+          usage: "Aktif",
+          shariah_status: addForm.status === "Green" ? "Patuh" : addForm.status === "Red" ? "Boikot" : "Perlu Semakan",
+          renewal_date: addForm.renewal || null,
+        },
+      ]);
+
+      if (error) {
+        pushNotice("Gagal simpan audit. Cuba semula.");
+      } else {
+        pushNotice("Audit disimpan ke Cloud.");
+        await fetchRealData(userId);
+        setIsAddModalOpen(false);
+        setAddForm({ name: "", cost: "", status: "Green", renewal: "" });
+      }
+      setLoading(false);
+      return;
+    }
 
     const newSub: Subscription = {
       id: `sub-${Date.now()}`,
@@ -356,33 +523,142 @@ export function App() {
     setIsAddModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    setActionLoadingId(id);
+    if (isSupabaseConfigured && userId) {
+      const { error } = await supabase.from("subscriptions").delete().eq("id", id);
+      if (error) {
+        pushNotice("Gagal padam rekod di cloud.");
+        fetchRealData(userId);
+        setActionLoadingId(null);
+        return;
+      }
+      pushNotice("Rekod dipadam dari cloud.");
+      await fetchRealData(userId);
+      setActionLoadingId(null);
+      return;
+    }
     setSubscriptions((prev) => prev.filter((item) => item.id !== id));
+    setActionLoadingId(null);
   };
 
-  const handleSwitchToHalal = (id: string) => {
-    setSubscriptions((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status: "Green",
-              usage: "Aktif",
-              waqfRoundUp: true,
-            }
-          : item
-      )
-    );
-    pushNotice("Alternatif patuh telah diaktifkan.");
+  const ensureHasSubscriptions = () => {
+    setSubscriptions((prev) => {
+      if (prev.length > 0) return prev;
+      return [
+        {
+          id: "demo-1",
+          name: "Netflix",
+          category: "Streaming",
+          cost: 55,
+          billing: "Bulanan",
+          usage: "Zombie",
+          status: "Red",
+          waqfRoundUp: true,
+          lastUsed: "2 minggu lepas",
+          renewInDays: 4,
+        },
+        {
+          id: "demo-2",
+          name: "iCloud+",
+          category: "Cloud",
+          cost: 12.9,
+          billing: "Bulanan",
+          usage: "Aktif",
+          status: "Yellow",
+          waqfRoundUp: true,
+          lastUsed: "Hari ini",
+          renewInDays: 15,
+        },
+        {
+          id: "demo-3",
+          name: "ChatGPT",
+          category: "Produktiviti",
+          cost: 99,
+          billing: "Bulanan",
+          usage: "Aktif",
+          status: "Green",
+          waqfRoundUp: true,
+          lastUsed: "Hari ini",
+          renewInDays: 27,
+        },
+      ];
+    });
   };
 
-  const handleCancel = (id: string) => {
+
+
+  const handleCancel = async (id: string) => {
+    setActionLoadingId(id);
+    if (isSupabaseConfigured && userId) {
+      const { error } = await supabase.from("subscriptions").delete().eq("id", id);
+      if (error) {
+        pushNotice("Gagal batalkan langganan di cloud.");
+        fetchRealData(userId);
+        setActionLoadingId(null);
+        return;
+      }
+      pushNotice("Langganan dibatalkan dari inventori.");
+      await fetchRealData(userId);
+      setActionLoadingId(null);
+      return;
+    }
     setSubscriptions((prev) => prev.filter((item) => item.id !== id));
     pushNotice("Langganan dibatalkan dari inventori.");
+    setActionLoadingId(null);
   };
 
-  const handleProfileSave = () => {
-    setSelectedWaqf(profileSettings.waqf);
+  const handleProfileSave = async () => {
+    const trimmedName = profileSettings.fullName.trim();
+    if (!trimmedName) {
+      pushNotice("Nama penuh diperlukan untuk profil.");
+      return;
+    }
+
+    if (profileSettings.newPassword || profileSettings.confirmPassword) {
+      if (profileSettings.newPassword.length < 6) {
+        pushNotice("Kata laluan mesti sekurang-kurangnya 6 aksara.");
+        return;
+      }
+      if (profileSettings.newPassword !== profileSettings.confirmPassword) {
+        pushNotice("Sahkan kata laluan anda dengan betul.");
+        return;
+      }
+    }
+
+    if (isSupabaseConfigured && userId) {
+      setLoading(true);
+      const updates: Record<string, any> = {
+        data: {
+          full_name: trimmedName,
+          waqf_target: profileSettings.waqf,
+        },
+      };
+
+      if (profileSettings.newPassword) {
+        updates.password = profileSettings.newPassword;
+      }
+
+      const { error } = await supabase.auth.updateUser(updates);
+      if (error) {
+        pushNotice("Gagal kemaskini profil: " + error.message);
+        setLoading(false);
+        return;
+      }
+
+      setUserFullName(trimmedName);
+      setSelectedWaqf(profileSettings.waqf);
+      setProfileSettings((prev) => ({
+        ...prev,
+        newPassword: "",
+        confirmPassword: "",
+      }));
+      setLoading(false);
+    } else {
+      setUserFullName(trimmedName);
+      setSelectedWaqf(profileSettings.waqf);
+    }
+
     setIsProfileOpen(false);
     pushNotice("Tetapan akaun dikemas kini.");
   };
@@ -441,6 +717,8 @@ export function App() {
             onClick={() => {
               setDemoMode(true);
               setUserEmail("demo@barakahsub.my");
+              setUserId(null);
+              ensureHasSubscriptions();
               setPage("Dashboard");
             }}
             className="w-full sm:w-auto border border-white/20 px-4 py-2 rounded-full uppercase tracking-widest text-[10px] font-black text-white/70"
@@ -476,6 +754,8 @@ export function App() {
               onClick={() => {
                 setDemoMode(true);
                 setUserEmail("demo@barakahsub.my");
+                setUserId(null);
+                ensureHasSubscriptions();
                 setPage("Dashboard");
               }}
               className="w-full sm:w-auto border border-white/20 px-6 py-3 rounded-full uppercase tracking-widest text-[11px] font-black text-white/70"
@@ -547,6 +827,19 @@ export function App() {
               {authMode === "login" ? "Login" : "Sign Up"}
             </h3>
             <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
+              {authMode === "signup" && (
+                <label className="flex items-center gap-3 bg-slate-900/70 border border-white/10 rounded-2xl px-4 py-3">
+                  <User className="w-4 h-4 text-white/40" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nama Penuh"
+                    className="bg-transparent flex-1 text-sm outline-none"
+                    value={authForm.fullName}
+                    onChange={(event) => setAuthForm((prev) => ({ ...prev, fullName: event.target.value }))}
+                  />
+                </label>
+              )}
               <label className="flex items-center gap-3 bg-slate-900/70 border border-white/10 rounded-2xl px-4 py-3">
                 <Mail className="w-4 h-4 text-white/40" />
                 <input
@@ -646,7 +939,7 @@ export function App() {
         <div className="space-y-4 mt-4 lg:mt-auto">
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">User Session</p>
-            <p className="text-sm font-semibold truncate">{userEmail}</p>
+            <p className="text-sm font-semibold truncate">{userFullName || userEmail}</p>
           </div>
           <button
             onClick={() => {
@@ -654,6 +947,8 @@ export function App() {
                 supabase.auth.signOut();
               }
               setPage("Public");
+              setUserId(null);
+              setSubscriptions([]);
             }}
             className="w-full flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-slate-400 hover:text-rose-500"
           >
@@ -699,6 +994,7 @@ export function App() {
             >
               <Plus className="w-4 h-4 inline mr-2" /> Audit Baru
             </button>
+
           </div>
         </header>
 
@@ -771,84 +1067,101 @@ export function App() {
                   </div>
                 </div>
 
-                <div className="mt-6 space-y-4">
-                  {filteredSubscriptions.map((item) => (
-                    <div
-                      key={item.id}
-                      className="border border-slate-100 rounded-2xl p-4 flex flex-col xl:flex-row xl:items-center gap-4"
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div
-                          className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${
-                            item.status === "Red" ? "bg-rose-500" : item.status === "Yellow" ? "bg-amber-500" : "bg-emerald-600"
-                          }`}
-                        >
-                          {item.name.slice(0, 1).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-black text-lg uppercase tracking-tight">{item.name}</p>
-                          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase text-slate-400 font-bold">
-                            <span>{item.category}</span>
-                            <span>•</span>
-                            <span>{item.billing}</span>
-                            <span>•</span>
-                            <span>Used: {item.lastUsed}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase ${complianceTone[item.status]}`}>
-                          {complianceLabel[item.status]}
-                        </span>
-                        <span className="text-sm font-bold">RM {item.cost.toFixed(2)}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {item.status !== "Green" && (
-                          <button
-                            onClick={() => handleSwitchToHalal(item.id)}
-                            className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-[10px] uppercase font-black"
-                          >
-                            Switch Halal
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleCancel(item.id)}
-                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] uppercase font-black"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="px-3 py-2 rounded-xl bg-rose-50 text-rose-500 text-[10px] uppercase font-black"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                <div className="mt-6">
+                  {filteredSubscriptions.length === 0 ? (
+                    <div className="border border-dashed border-slate-200 rounded-2xl p-6 text-center text-sm text-slate-500">
+                      Tiada langganan direkodkan lagi. Mulakan dengan butang <strong>Audit Baru</strong>.
                     </div>
-                  ))}
+                  ) : (
+                    <div className="max-h-[360px] sm:max-h-[420px] lg:max-h-[520px] overflow-y-auto pr-2 space-y-4">
+                      {filteredSubscriptions.map((item) => (
+                        <div
+                          key={item.id}
+                          className="border border-slate-100 rounded-2xl p-4 flex flex-col gap-4"
+                        >
+                          <div className="flex flex-col xl:flex-row xl:items-center gap-4">
+                            <div className="flex items-center gap-4 flex-1">
+                              <div
+                                className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white ${
+                                  item.status === "Red" ? "bg-rose-500" : item.status === "Yellow" ? "bg-amber-500" : "bg-emerald-600"
+                                }`}
+                              >
+                                {item.name.slice(0, 1).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-black text-lg uppercase tracking-tight">{item.name}</p>
+                                <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase text-slate-400 font-bold">
+                                  <span>{item.category}</span>
+                                  <span>•</span>
+                                  <span>{item.billing}</span>
+                                  <span>•</span>
+                                  <span>Used: {item.lastUsed}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase ${complianceTone[item.status]}`}>
+                                {complianceLabel[item.status]}
+                              </span>
+                              <span className="text-sm font-bold">RM {item.cost.toFixed(2)}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                onClick={() => handleCancel(item.id)}
+                                disabled={actionLoadingId === item.id}
+                                className={`px-3 py-2 rounded-xl text-[10px] uppercase font-black transition-all ${
+                                  actionLoadingId === item.id ? "bg-slate-200 text-slate-400" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                }`}
+                              >
+                                {actionLoadingId === item.id ? "Processing" : "Cancel"}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(item.id)}
+                                disabled={actionLoadingId === item.id}
+                                className={`px-3 py-2 rounded-xl text-[10px] uppercase font-black transition-all ${
+                                  actionLoadingId === item.id ? "bg-rose-100 text-rose-300" : "bg-rose-50 text-rose-500 hover:bg-rose-100"
+                                }`}
+                              >
+                                {actionLoadingId === item.id ? "Deleting" : "Delete"}
+                              </button>
+                            </div>
+                          </div>
+                          {item.status !== "Green" && auditDatabase[item.name.toLowerCase()]?.suggestion && (
+                            <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-[10px] text-emerald-700 font-semibold">
+                              Cadangan: {auditDatabase[item.name.toLowerCase()]?.suggestion}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-6">
-                <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">Live Monitoring</p>
-                      <h3 className="text-lg font-black">Renewing Soon</h3>
-                    </div>
-                    <Bell className="w-5 h-5 text-rose-500" />
+                              <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase text-slate-400 font-black tracking-widest">Live Monitoring</p>
+                    <h3 className="text-lg font-black">Renewing Soon</h3>
                   </div>
-                  <div className="mt-4 space-y-3">
-                    {subscriptions
+                  <Bell className="w-5 h-5 text-rose-500" />
+                </div>
+                <div className="mt-4 space-y-3 max-h-[200px] overflow-y-auto pr-1">
+                  {subscriptions.filter((item) => item.renewInDays <= 7).length === 0 ? (
+                    <p className="text-sm text-slate-500">Tiada langganan yang hampir tamat.</p>
+                  ) : (
+                    subscriptions
                       .filter((item) => item.renewInDays <= 7)
                       .map((item) => (
                         <div key={item.id} className="flex items-center justify-between text-sm">
                           <span>{item.name}</span>
                           <span className="text-rose-500 text-xs font-bold">{item.renewInDays} hari</span>
                         </div>
-                      ))}
-                  </div>
+                      ))
+                  )}
                 </div>
+              </div>
 
                 <div className="bg-slate-900 text-white rounded-[2.5rem] p-6">
                   <div className="flex items-center justify-between">
@@ -928,26 +1241,30 @@ export function App() {
                   Tambah Audit
                 </button>
               </div>
-              <div className="mt-6 space-y-4">
-                {filteredSubscriptions.map((item) => (
-                  <div key={item.id} className="border border-slate-100 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center gap-4">
-                    <div className="flex-1">
-                      <p className="text-lg font-black uppercase">{item.name}</p>
-                      <p className="text-xs text-slate-400">Cadangan: {auditDatabase[item.name.toLowerCase()]?.suggestion || "Tiada"}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase ${complianceTone[item.status]}`}>
-                        {complianceLabel[item.status]}
-                      </span>
-                      <button
-                        onClick={() => handleSwitchToHalal(item.id)}
-                        className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-[10px] uppercase font-black"
-                      >
-                        Alternatif
-                      </button>
-                    </div>
+                            <div className="mt-6 space-y-4">
+                {filteredSubscriptions.length === 0 ? (
+                  <div className="border border-dashed border-slate-200 rounded-2xl p-6 text-center text-sm text-slate-500">
+                    Tiada rekod audit. Tambahkan servis baru untuk mula audit.
                   </div>
-                ))}
+                ) : (
+                  filteredSubscriptions.map((item) => (
+                    <div key={item.id} className="border border-slate-100 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center gap-4">
+                      <div className="flex-1 space-y-2">
+                        <p className="text-lg font-black uppercase">{item.name}</p>
+                        {item.status !== "Green" && auditDatabase[item.name.toLowerCase()]?.suggestion && (
+                          <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-[10px] text-emerald-700 font-semibold">
+                            Cadangan: {auditDatabase[item.name.toLowerCase()]?.suggestion}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase ${complianceTone[item.status]}`}>
+                          {complianceLabel[item.status]}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </section>
@@ -1002,6 +1319,8 @@ export function App() {
                 </button>
               </div>
             </div>
+
+
           </section>
         )}
       </main>
@@ -1088,6 +1407,15 @@ export function App() {
           <Modal onClose={() => setIsProfileOpen(false)} title="Profil & Tetapan">
             <div className="space-y-6">
               <div>
+                <p className="text-[10px] uppercase text-slate-400 font-bold">Nama Penuh</p>
+                <input
+                  value={profileSettings.fullName}
+                  onChange={(event) => setProfileSettings((prev) => ({ ...prev, fullName: event.target.value }))}
+                  className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-semibold"
+                  placeholder="Nama penuh anda"
+                />
+              </div>
+              <div>
                 <p className="text-[10px] uppercase text-slate-400 font-bold">Waqf Preferences</p>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   {waqfProjects.map((project) => (
@@ -1126,12 +1454,35 @@ export function App() {
                   Multi-Factor Authentication
                   <span>{profileSettings.mfa ? "Enabled" : "Disabled"}</span>
                 </button>
+                <div className="mt-4 grid gap-3">
+                  <label className="text-[10px] uppercase text-slate-400 font-bold">
+                    Kata Laluan Baharu
+                    <input
+                      type="password"
+                      value={profileSettings.newPassword}
+                      onChange={(event) => setProfileSettings((prev) => ({ ...prev, newPassword: event.target.value }))}
+                      className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-semibold"
+                      placeholder="Sekurang-kurangnya 6 aksara"
+                    />
+                  </label>
+                  <label className="text-[10px] uppercase text-slate-400 font-bold">
+                    Sahkan Kata Laluan
+                    <input
+                      type="password"
+                      value={profileSettings.confirmPassword}
+                      onChange={(event) => setProfileSettings((prev) => ({ ...prev, confirmPassword: event.target.value }))}
+                      className="mt-2 w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-semibold"
+                      placeholder="Ulang kata laluan"
+                    />
+                  </label>
+                </div>
               </div>
               <button
                 onClick={handleProfileSave}
+                disabled={loading}
                 className="w-full bg-slate-900 text-white py-3 rounded-2xl font-black uppercase tracking-widest"
               >
-                Simpan Tetapan
+                {loading ? "Menyimpan..." : "Simpan Tetapan"}
               </button>
             </div>
           </Modal>
@@ -1226,9 +1577,17 @@ function auditRisk(subscriptions: Subscription[]) {
   return (negative / total) * 100;
 }
 
+function getDaysRemaining(dateString?: string | null) {
+  if (!dateString) return null;
+  const today = new Date();
+  const renewal = new Date(dateString);
+  const diffTime = renewal.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
 type ModalProps = {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   onClose: () => void;
   size?: "md" | "lg";
 };
